@@ -1,0 +1,184 @@
+{
+  "name": "Book Generation Workflow (Fixed)",
+  "nodes": [
+    {
+      "parameters": {
+        "fields": {
+          "values": [
+            { "name": "title", "type": "string" },
+            { "name": "notes_on_outline_before", "type": "string" },
+            { "name": "status_outline_notes", "type": "string" },
+            { "name": "chapter_notes_status", "type": "string" },
+            { "name": "final_review_notes_status", "type": "string" }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 0],
+      "name": "Manual Trigger"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [{ "value1": "={{$json[\"notes_on_outline_before\"]}}", "operation": "isEmpty" }]
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [220, 0],
+      "name": "Check Outline Notes Before"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash",
+        "prompt": "Generate a book outline for the title '{{$json.title}}' with the following notes: '{{$json.notes_on_outline_before}}'"
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [440, 0],
+      "name": "Generate Outline"
+    },
+    {
+      "parameters": {
+        "useCustomSchema": true,
+        "schema": "outline",
+        "dataToSend": "={{$node['Generate Outline'].json}}"
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [660, 0],
+      "name": "Save Outline"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [{ "value1": "={{$json[\"status_outline_notes\"]}}", "operation": "equal", "value2": "no_notes_needed" }]
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [880, 0],
+      "name": "Check Outline Status"
+    },
+    {
+      "parameters": {
+        "batchSize": 1
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 2,
+      "position": [1100, 0],
+      "name": "Split Chapters"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [{ "value1": "={{$json[\"chapter_notes_status\"]}}", "operation": "equal", "value2": "no_notes_needed" }]
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1320, 0],
+      "name": "Check Chapter Notes Status"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash",
+        "prompt": "Write chapter '{{$json.chapter_title}}' for the book '{{$json.title}}'. Use summaries of previous chapters as context: {{$json.chapter_summaries}}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [1540, 0],
+      "name": "Generate Chapter"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash",
+        "prompt": "Summarize the following chapter: {{$node['Generate Chapter'].json}}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [1760, 0],
+      "name": "Summarize Chapter"
+    },
+    {
+      "parameters": {
+        "useCustomSchema": true,
+        "schema": "chapters",
+        "dataToSend": "={{ { 'chapter_title': $json.chapter_title, 'chapter_content': $node['Generate Chapter'].json, 'chapter_summary': $node['Summarize Chapter'].json } }}"
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [1980, 0],
+      "name": "Save Chapter"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "schema": "chapters"
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [2200, 0],
+      "name": "Get All Chapters"
+    },
+    {
+      "parameters": {
+        "javascriptCode": "const chapters = $input.all();\nconst bookContent = chapters.map(item => item.json.chapter_content).join('\n\n');\nreturn { bookContent };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [2420, 0],
+      "name": "Combine Chapters"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [{ "value1": "={{$json[\"final_review_notes_status\"]}}", "operation": "equal", "value2": "no_notes_needed" }]
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [2640, 0],
+      "name": "Check Final Review Status"
+    },
+    {
+      "parameters": {
+        "fileName": "book.txt",
+        "data": "={{$node['Combine Chapters'].json.bookContent}}"
+      },
+      "type": "n8n-nodes-base.writeBinaryFile",
+      "typeVersion": 1,
+      "position": [2860, 0],
+      "name": "Write Final Book"
+    },
+    {
+      "parameters": {
+        "to": "user@example.com",
+        "subject": "Book Ready",
+        "text": "Your generated book is attached.",
+        "attachments": "={{$node['Write Final Book'].json.fileName}}"
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [3080, 0],
+      "name": "Send Email"
+    }
+  ],
+  "connections": {
+    "Manual Trigger": { "main": [[{ "node": "Check Outline Notes Before", "type": "main", "index": 0 }]] },
+    "Check Outline Notes Before": { "main": [[{ "node": "Generate Outline", "type": "main", "index": 0 }]] },
+    "Generate Outline": { "main": [[{ "node": "Save Outline", "type": "main", "index": 0 }]] },
+    "Save Outline": { "main": [[{ "node": "Check Outline Status", "type": "main", "index": 0 }]] },
+    "Check Outline Status": { "main": [[{ "node": "Split Chapters", "type": "main", "index": 0 }]] },
+    "Split Chapters": { "main": [[{ "node": "Check Chapter Notes Status", "type": "main", "index": 0 }]] },
+    "Check Chapter Notes Status": { "main": [[{ "node": "Generate Chapter", "type": "main", "index": 0 }]] },
+    "Generate Chapter": { "main": [[{ "node": "Summarize Chapter", "type": "main", "index": 0 }]] },
+    "Summarize Chapter": { "main": [[{ "node": "Save Chapter", "type": "main", "index": 0 }]] },
+    "Save Chapter": { "main": [[{ "node": "Get All Chapters", "type": "main", "index": 0 }]] },
+    "Get All Chapters": { "main": [[{ "node": "Combine Chapters", "type": "main", "index": 0 }]] },
+    "Combine Chapters": { "main": [[{ "node": "Check Final Review Status", "type": "main", "index": 0 }]] },
+    "Check Final Review Status": { "main": [[{ "node": "Write Final Book", "type": "main", "index": 0 }]] },
+    "Write Final Book": { "main": [[{ "node": "Send Email", "type": "main", "index": 0 }]] }
+  }
+}
