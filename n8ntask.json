@@ -1,184 +1,708 @@
 {
-  "name": "Book Generation Workflow (Fixed)",
+  "name": "My workflow 2",
   "nodes": [
     {
       "parameters": {
-        "fields": {
-          "values": [
-            { "name": "title", "type": "string" },
-            { "name": "notes_on_outline_before", "type": "string" },
-            { "name": "status_outline_notes", "type": "string" },
-            { "name": "chapter_notes_status", "type": "string" },
-            { "name": "final_review_notes_status", "type": "string" }
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json[\"notes_on_outline_before\"]}}",
+              "operation": "isEmpty"
+            }
           ]
         }
       },
-      "type": "n8n-nodes-base.manualTrigger",
-      "typeVersion": 1,
-      "position": [0, 0],
-      "name": "Manual Trigger"
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "string": [{ "value1": "={{$json[\"notes_on_outline_before\"]}}", "operation": "isEmpty" }]
-        }
-      },
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [220, 0],
-      "name": "Check Outline Notes Before"
+      "position": [
+        208,
+        -544
+      ],
+      "name": "Check Outline Notes Before",
+      "id": "cbb7b93f-42ea-4d5d-b435-38b98237a56e"
     },
     {
       "parameters": {
         "modelName": "models/gemini-2.0-flash",
-        "prompt": "Generate a book outline for the title '{{$json.title}}' with the following notes: '{{$json.notes_on_outline_before}}'"
+        "options": {}
       },
       "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
       "typeVersion": 1,
-      "position": [440, 0],
-      "name": "Generate Outline"
+      "position": [
+        440,
+        -320
+      ],
+      "name": "Generate Outline",
+      "id": "d21575b5-4742-4632-9b38-de6f508a5db2",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "oUHgOGhX8Chuso5l",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
     },
     {
       "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Create a row in Supabase",
         "useCustomSchema": true,
-        "schema": "outline",
-        "dataToSend": "={{$node['Generate Outline'].json}}"
+        "schema": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Schema', ``, 'string') }}",
+        "tableId": "outlines",
+        "dataToSend": "=={{ $json.outline ? $json.outline : ($node[\"Generate Outline\"] ? $node[\"Generate Outline\"].json : {}) }}\n"
       },
       "type": "n8n-nodes-base.supabaseTool",
       "typeVersion": 1,
-      "position": [660, 0],
-      "name": "Save Outline"
+      "position": [
+        568,
+        -320
+      ],
+      "name": "Save Outline",
+      "id": "89a95898-131b-402f-b50c-067648836e24",
+      "credentials": {
+        "supabaseApi": {
+          "id": "8yXvATTMinfcfa2n",
+          "name": "Supabase account"
+        }
+      }
     },
     {
       "parameters": {
         "conditions": {
-          "string": [{ "value1": "={{$json[\"status_outline_notes\"]}}", "operation": "equal", "value2": "no_notes_needed" }]
+          "string": [
+            {
+              "value1": "={{$json[\"status_outline_notes\"]}}",
+              "value2": "no_notes_needed"
+            }
+          ]
         }
       },
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [880, 0],
-      "name": "Check Outline Status"
-    },
-    {
-      "parameters": {
-        "batchSize": 1
-      },
-      "type": "n8n-nodes-base.splitInBatches",
-      "typeVersion": 2,
-      "position": [1100, 0],
-      "name": "Split Chapters"
+      "position": [
+        784,
+        -472
+      ],
+      "name": "Check Outline Status",
+      "id": "f4b04dd8-ad60-4bad-9ea0-c0d68372472f"
     },
     {
       "parameters": {
         "conditions": {
-          "string": [{ "value1": "={{$json[\"chapter_notes_status\"]}}", "operation": "equal", "value2": "no_notes_needed" }]
+          "string": [
+            {
+              "value1": "={{$json[\"chapter_notes_status\"]}}",
+              "value2": "no_notes_needed"
+            }
+          ]
         }
       },
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [1320, 0],
-      "name": "Check Chapter Notes Status"
+      "position": [
+        1232,
+        -472
+      ],
+      "name": "Check Chapter Notes Status",
+      "id": "e1f50b97-13dd-4fee-a044-e4977bfec3e5"
     },
     {
       "parameters": {
         "modelName": "models/gemini-2.0-flash",
-        "prompt": "Write chapter '{{$json.chapter_title}}' for the book '{{$json.title}}'. Use summaries of previous chapters as context: {{$json.chapter_summaries}}"
+        "options": {}
       },
       "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
       "typeVersion": 1,
-      "position": [1540, 0],
-      "name": "Generate Chapter"
+      "position": [
+        1528,
+        -320
+      ],
+      "name": "Generate Chapter",
+      "id": "5efe9201-8ca6-4364-9fe5-26a00135b3bc",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "oUHgOGhX8Chuso5l",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
     },
     {
       "parameters": {
         "modelName": "models/gemini-2.0-flash",
-        "prompt": "Summarize the following chapter: {{$node['Generate Chapter'].json}}"
+        "options": {}
       },
       "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
       "typeVersion": 1,
-      "position": [1760, 0],
-      "name": "Summarize Chapter"
+      "position": [
+        1816,
+        -320
+      ],
+      "name": "Summarize Chapter",
+      "id": "8e0e0622-b0c8-4866-b630-bad36970bbc7",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "oUHgOGhX8Chuso5l",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
     },
     {
       "parameters": {
-        "useCustomSchema": true,
-        "schema": "chapters",
+        "tableId": "chapters",
         "dataToSend": "={{ { 'chapter_title': $json.chapter_title, 'chapter_content': $node['Generate Chapter'].json, 'chapter_summary': $node['Summarize Chapter'].json } }}"
       },
       "type": "n8n-nodes-base.supabaseTool",
       "typeVersion": 1,
-      "position": [1980, 0],
-      "name": "Save Chapter"
+      "position": [
+        1944,
+        -320
+      ],
+      "name": "Save Chapter",
+      "id": "bb952b54-f708-47f0-8cb1-4065a9b5ce4a",
+      "credentials": {
+        "supabaseApi": {
+          "id": "8yXvATTMinfcfa2n",
+          "name": "Supabase account"
+        }
+      }
     },
     {
       "parameters": {
         "operation": "getAll",
-        "schema": "chapters"
+        "tableId": "books",
+        "returnAll": true,
+        "matchType": "allFilters"
       },
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
-      "position": [2200, 0],
-      "name": "Get All Chapters"
+      "position": [
+        2160,
+        -544
+      ],
+      "name": "Get All Chapters",
+      "id": "0f789e5b-985c-4142-82c4-a3a93a1c51b2",
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "8yXvATTMinfcfa2n",
+          "name": "Supabase account"
+        }
+      }
     },
     {
       "parameters": {
-        "javascriptCode": "const chapters = $input.all();\nconst bookContent = chapters.map(item => item.json.chapter_content).join('\n\n');\nreturn { bookContent };"
+        "jsCode": "\nfor (const item of $input.all()) {\n  item.json.myNewField = 1;\n}\n\nreturn $input.all();"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 1,
-      "position": [2420, 0],
-      "name": "Combine Chapters"
+      "position": [
+        2736,
+        -472
+      ],
+      "name": "Combine Chapters",
+      "id": "07f5c00d-b9b7-4f85-b15e-7dbc13c3850a",
+      "alwaysOutputData": true
     },
     {
       "parameters": {
         "conditions": {
-          "string": [{ "value1": "={{$json[\"final_review_notes_status\"]}}", "operation": "equal", "value2": "no_notes_needed" }]
+          "string": [
+            {
+              "value1": "={{$json[\"final_review_notes_status\"]}}",
+              "value2": "no_notes_needed"
+            }
+          ]
         }
       },
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [2640, 0],
-      "name": "Check Final Review Status"
+      "position": [
+        2960,
+        -544
+      ],
+      "name": "Check Final Review Status",
+      "id": "b828bdc8-e107-41c7-b8fd-4e568ca0816f",
+      "alwaysOutputData": true,
+      "retryOnFail": true
     },
     {
       "parameters": {
         "fileName": "book.txt",
-        "data": "={{$node['Combine Chapters'].json.bookContent}}"
+        "options": {}
       },
       "type": "n8n-nodes-base.writeBinaryFile",
       "typeVersion": 1,
-      "position": [2860, 0],
-      "name": "Write Final Book"
+      "position": [
+        3184,
+        -544
+      ],
+      "name": "Write Final Book",
+      "id": "9c916848-f085-4d29-9977-3b4af05fded4",
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "notes": "always output binarry data"
     },
     {
       "parameters": {
-        "to": "user@example.com",
-        "subject": "Book Ready",
-        "text": "Your generated book is attached.",
-        "attachments": "={{$node['Write Final Book'].json.fileName}}"
+        "promptType": "define",
+        "text": "plz extract the outline save it in supabase and pass it , extarct the outline content from my inputand save it ",
+        "options": {}
       },
-      "type": "n8n-nodes-base.emailSend",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        432,
+        -544
+      ],
+      "id": "25d34ca7-fe48-44b3-95ae-ec92eb47dcb4",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "you are going to generate the chapters ",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        1456,
+        -544
+      ],
+      "id": "2062f1a3-f4c3-41f2-a88f-826e96fe6d7e",
+      "name": "AI Agent1"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "you are going to summarize and save the chapters",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        1808,
+        -544
+      ],
+      "id": "8e4654ef-7eb9-4b13-a968-c7639caff1c9",
+      "name": "AI Agent2"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "based on the book completion send teh email \n\n\n\nOutline is ready and needs review\nWaiting for chapter notes\nFinal draft is compiled\nError or pause due to missing input\n\n\nsee what type of email will be send based on the previous input ",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        3408,
+        -544
+      ],
+      "id": "80ab199e-3d47-4a40-b398-6c3f4a2e248a",
+      "name": "AI Agent3"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
       "typeVersion": 1,
-      "position": [3080, 0],
-      "name": "Send Email"
+      "position": [
+        3416,
+        -320
+      ],
+      "id": "dfd6618d-2e3b-4317-8166-d864ee835823",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "oUHgOGhX8Chuso5l",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "hassanasim337@gmail.com",
+        "subject": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Subject', ``, 'string') }}",
+        "message": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Message', ``, 'string') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmailTool",
+      "typeVersion": 2.1,
+      "position": [
+        3544,
+        -320
+      ],
+      "id": "3ec0b6e4-1b48-4eab-ad8c-a1c7d3b159a8",
+      "name": "Send a message in Gmail",
+      "webhookId": "94c7b14d-0e3a-4f90-99f9-d4a836ebe4c2",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "YhiS55HUaEWj6O1R",
+          "name": "Gmail account"
+        }
+      },
+      "notes": "you need to sent the final email based on the taslk completion \n"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -16,
+        -544
+      ],
+      "id": "02dbf33e-7386-470d-9a91-1a2f4947212b",
+      "name": "When chat message received",
+      "webhookId": "61ecac6a-bab3-4532-81b8-2e35eaa95958"
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {
+          "reset": false
+        }
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 2,
+      "position": [
+        1008,
+        -472
+      ],
+      "name": "Split Chapters",
+      "id": "2e1d3808-cf9f-407a-8a6c-41c2c9e27a37",
+      "alwaysOutputData": true,
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "get the chapters and combine them\n",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        2384,
+        -544
+      ],
+      "id": "e16df2be-e5d7-4082-b488-b1123f5ca1a9",
+      "name": "AI Agent4"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        2392,
+        -320
+      ],
+      "id": "87c75ad0-fe70-45ea-9eab-195180617dce",
+      "name": "Google Gemini Chat Model1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "oUHgOGhX8Chuso5l",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "get the books data",
+        "operation": "getAll",
+        "tableId": "books"
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        2520,
+        -320
+      ],
+      "id": "5c2c2da1-159c-4246-ae00-b545f37ba422",
+      "name": "Get many rows in Supabase",
+      "credentials": {
+        "supabaseApi": {
+          "id": "8yXvATTMinfcfa2n",
+          "name": "Supabase account"
+        }
+      }
     }
   ],
+  "pinData": {},
   "connections": {
-    "Manual Trigger": { "main": [[{ "node": "Check Outline Notes Before", "type": "main", "index": 0 }]] },
-    "Check Outline Notes Before": { "main": [[{ "node": "Generate Outline", "type": "main", "index": 0 }]] },
-    "Generate Outline": { "main": [[{ "node": "Save Outline", "type": "main", "index": 0 }]] },
-    "Save Outline": { "main": [[{ "node": "Check Outline Status", "type": "main", "index": 0 }]] },
-    "Check Outline Status": { "main": [[{ "node": "Split Chapters", "type": "main", "index": 0 }]] },
-    "Split Chapters": { "main": [[{ "node": "Check Chapter Notes Status", "type": "main", "index": 0 }]] },
-    "Check Chapter Notes Status": { "main": [[{ "node": "Generate Chapter", "type": "main", "index": 0 }]] },
-    "Generate Chapter": { "main": [[{ "node": "Summarize Chapter", "type": "main", "index": 0 }]] },
-    "Summarize Chapter": { "main": [[{ "node": "Save Chapter", "type": "main", "index": 0 }]] },
-    "Save Chapter": { "main": [[{ "node": "Get All Chapters", "type": "main", "index": 0 }]] },
-    "Get All Chapters": { "main": [[{ "node": "Combine Chapters", "type": "main", "index": 0 }]] },
-    "Combine Chapters": { "main": [[{ "node": "Check Final Review Status", "type": "main", "index": 0 }]] },
-    "Check Final Review Status": { "main": [[{ "node": "Write Final Book", "type": "main", "index": 0 }]] },
-    "Write Final Book": { "main": [[{ "node": "Send Email", "type": "main", "index": 0 }]] }
-  }
+    "Check Outline Status": {
+      "main": [
+        [
+          {
+            "node": "Split Chapters",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get All Chapters": {
+      "main": [
+        [
+          {
+            "node": "AI Agent4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Combine Chapters": {
+      "main": [
+        [
+          {
+            "node": "Check Final Review Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Final Review Status": {
+      "main": [
+        [
+          {
+            "node": "Write Final Book",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write Final Book": {
+      "main": [
+        [
+          {
+            "node": "AI Agent3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Outline Notes Before": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Outline": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Outline": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Check Outline Status",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "AI Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Chapter Notes Status": {
+      "main": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Chapter": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent1": {
+      "main": [
+        [
+          {
+            "node": "AI Agent2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Summarize Chapter": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent2",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Chapter": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent2",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent2": {
+      "main": [
+        [
+          {
+            "node": "Get All Chapters",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent3",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent3": {
+      "main": [
+        []
+      ]
+    },
+    "Send a message in Gmail": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent3",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "Check Outline Notes Before",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Chapters": {
+      "main": [
+        [
+          {
+            "node": "Check Chapter Notes Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent4": {
+      "main": [
+        [
+          {
+            "node": "Check Final Review Status",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Combine Chapters",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent4",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many rows in Supabase": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent4",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "23d9fd00-5c57-404d-81f9-d6724696ff5e",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "684913644f997ac9250dfd1a51d26ed8b2acce5ff9f790961f58cd30e132ef53"
+  },
+  "id": "Gw6L9XyZjlezR0Wk",
+  "tags": []
 }
